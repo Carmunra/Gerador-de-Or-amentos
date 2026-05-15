@@ -1,18 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from typing import AsyncGenerator
 
 #URL que aponta para o seu container Docker
-SQLALCHEMY_DATABASE_URL = "postgresql://user_alfalux:password_alfalux@localhost:5432/alfalux_propostas"
+DATABASE_URL = "postgresql+asyncpg://user_alfalux:password_alfalux@db:5432/alfalux_propostas"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+#1. Configurar AsyncEngine
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-Base = declarative_base()
+#2. Configurando o async_sessionmaker
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

@@ -11,8 +11,26 @@ services:
       POSTGRES_DB: alfalux_propostas
     ports:
       - "5432:5432"
+    healthcheck:
+      #Este comando verifica se o Postgres está pronto para aceitar conexões
+      test: ["CMD-SHELL", "pg_isready -U user_alfalux -d alfalux_propostas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: alfalux_api
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy #Só inicia a app quando o db estiver 'healthy'
+    environment:
+      DATABASE_URL: postgresql://user_alfalux:password_alfalux@db:5432/alfalux_propostas
 
   pgadmin:
     image: dpage/pgadmin4

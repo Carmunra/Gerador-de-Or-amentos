@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from app.models import Client, Product, Summary
 
 
-def test_client_invalid_cnpj_should_falid():
+def test_client_invalid_cnpj_should_failed():
     with pytest.raises(ValidationError) as excinfo:
         Client(name="Empresa Teste", cnpj="ABC12345678901", state="SP")
     assert "CNPJ deve conter exatamente 14 números" in str(excinfo.value)

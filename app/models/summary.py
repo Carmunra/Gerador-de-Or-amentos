@@ -1,4 +1,3 @@
-from django.conf.global_settings import INTERNAL_IPS
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
@@ -75,13 +74,42 @@ def format_currency(value: float) -> str:
 
 #--- Modelo Summary ---
 class Summary(BaseModel):
-    sku: int = Field(..., description="O sku do produto")
-    client: Client
-    products: List[Product]
-    total_price: float = Field(default=0.0, ge=0)
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.now)
-    origin_state: str = "SP"
+    """
+    Entidade central que consolida os dados de um orçamento comercial.
+    Realiza o cálculo automático de impostos (DIFAL) baseado na UF de destino.
+    """
+    sku: int = Field(
+        ...,
+        description="Identificador único da proposta/orçamento.",
+        example=1025
+    )
+    client: Client = Field(
+        ...,
+        description="Dados do cliente, incluindo CNPJ para validação na BrasilAPI"
+    )
+    products: List[Product] = Field(
+        ...,
+        description="Lista de produtos selecionados para o orçamento."
+    )
+    total_price: float = Field(
+        default=0.0,
+        ge=0,
+        description="Valor total calculado (preço base + impostos).",
+        example=1550.50
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Status de validade da proposta comercial."
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        description="Data e hora de geração do registro."
+    )
+    origin_state: str = Field(
+        default="SP",
+        description="UF de origem da mercadoria para cálculo do DIFAL.",
+        example="SP"
+    )
 
     def apply_tax_logic(self):
         raw_total = sum(p.price for p in self.products)
@@ -92,9 +120,11 @@ class Summary(BaseModel):
 
 class SummaryResponse(BaseModel):
     """ResponseModel: Oculta dados sensíveis como CNPJ na resposta da API"""
-    sku: int
-    client_name: str
-    state: str
-    items_count: int
-    total_price: float
-    total_price_formatted: str
+    sku: int = Field(..., description="SKU da proposta.")
+    client_name: str = Field(..., description="Razão Social higienizada via BrasilAPI.",
+                             example="Alfalux Industrial LTDA")
+    state: str = Field(..., description="Estado do cliente validado.", example="RJ")
+    items_count: int = Field(..., description="Quantidade total de itens no carrinho.", example=5)
+    total_price: float = Field(..., description="Valor final numérico.")
+    total_price_formatted: str = Field(..., description="Valor final formatado em moeda nacional.",
+                                       example="R$ 1.550,50")
